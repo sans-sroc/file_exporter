@@ -10,7 +10,7 @@ var SUMMARY = "1.0.0-dev"
 var BRANCH = "dev"
 
 // VERSION of Release
-var VERSION = "1.0.13"
+var VERSION = "1.0.1"
 
 // AppVersion --
 var AppVersion AppVersionInfo
