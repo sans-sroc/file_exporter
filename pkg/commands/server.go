@@ -33,15 +33,18 @@ func (s *apiServerCommand) Execute(c *cli.Context) error {
 		return errors.New("You must pass a path or path-recursive to the tool for monitoring")
 	}
 
-	serviceCtx, err := runService(ctx)
+	log := logrus.New()
+	log.SetLevel(logrus.GetLevel())
+
+	serviceCtx, err := runService(ctx, log)
 	if err != nil {
 		return err
 	}
 
-	go monitor.New(serviceCtx, c)
+	go monitor.New(serviceCtx, c, log)
 
 	listen := c.String("telemetry.addr")
-	log := logrus.WithField("component", "metrics").WithField("telemetry.addr", listen)
+	entry := log.WithField("component", "metrics").WithField("telemetry.addr", listen)
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.Path("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,23 +66,23 @@ func (s *apiServerCommand) Execute(c *cli.Context) error {
 	}
 
 	go func() {
-		log.Info("Starting Metrics Server")
+		entry.Info("Starting Metrics Server")
 
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.WithError(err).Error("an error occurred with metrics server")
+			entry.WithError(err).Error("an error occurred with metrics server")
 		}
 	}()
 
 	<-serviceCtx.Done()
 
-	log.Info("Shutting down metrics server")
+	entry.Info("Shutting down metrics server")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	srv.SetKeepAlivesEnabled(false)
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Could not gracefully shutdown the metrics server: %v\n", err)
+		entry.Fatalf("Could not gracefully shutdown the metrics server: %v\n", err)
 	}
 
 	return nil

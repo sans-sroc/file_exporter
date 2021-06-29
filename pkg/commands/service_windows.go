@@ -38,8 +38,7 @@ loop:
 	return
 }
 
-func runService(ctx context.Context) (context.Context, error) {
-	log := logrus.New()
+func runService(ctx context.Context, log *logrus.Logger) (context.Context, error) {
 	elog, err := eventlog.Open(serviceName)
 	if err != nil {
 		return ctx, err

@@ -4,7 +4,6 @@ import (
 	"context"
 	"hash/crc32"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,8 +34,10 @@ var (
 	}, []string{"path", "op"})
 )
 
-func New(ctx context.Context, c *cli.Context) {
+func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 	w := watcher.New()
+
+	logentry := log.WithField("component", "monitor")
 
 	// Only notify rename and move events.
 	// w.FilterOps(watcher.Rename, watcher.Move)
@@ -65,7 +66,7 @@ func New(ctx context.Context, c *cli.Context) {
 				}
 
 			case err := <-w.Error:
-				log.Fatalln(err)
+				logentry.Fatalln(err)
 			case <-w.Closed:
 				return
 			case <-ctx.Done():
@@ -76,32 +77,65 @@ func New(ctx context.Context, c *cli.Context) {
 
 	if len(c.String("paths")) > 0 {
 		for _, f := range strings.Split(c.String("paths"), ",") {
-			logrus.WithField("path", f).Debug("monitored path from paths")
+			path := f
+			abs, err := filepath.Abs(path)
+			if err != nil {
+				logentry.WithError(err).Error("unable to get abs path")
+			} else {
+				path = abs
+			}
+
+			logentry.WithField("path", path).Debug("monitored path from paths")
 			if err := w.Add(f); err != nil {
-				logrus.WithField("path", f).WithError(err).Error("unable to add file for watching")
+				logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 			}
 		}
 	}
 
 	for _, f := range c.StringSlice("path") {
-		logrus.WithField("path", f).Debug("monitored path flag")
-		if err := w.Add(f); err != nil {
-			logrus.WithField("path", f).WithError(err).Error("unable to add file for watching")
+		path := f
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			logentry.WithError(err).Error("unable to get abs path")
+		} else {
+			path = abs
+		}
+
+		logentry.WithField("path", path).Debug("monitored path flag")
+		if err := w.Add(path); err != nil {
+			logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 		}
 	}
 
 	if len(c.String("recursive-paths")) > 0 {
 		for _, f := range strings.Split(c.String("recursive-paths"), ",") {
-			logrus.WithField("path", f).Debug("monitored path recursively")
-			if err := w.Add(f); err != nil {
-				logrus.WithField("path", f).WithError(err).Error("unable to add file for watching")
+			path := f
+			abs, err := filepath.Abs(path)
+			if err != nil {
+				logentry.WithError(err).Error("unable to get abs path")
+			} else {
+				path = abs
+			}
+
+			logentry.WithField("path", path).Debug("monitored path recursively")
+			if err := w.AddRecursive(path); err != nil {
+				logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 			}
 		}
 	}
 
 	for _, d := range c.StringSlice("recursive-path") {
-		if err := w.AddRecursive(d); err != nil {
-			logrus.WithError(err).Error("unable to add directory for recursive watch")
+		path := d
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			logentry.WithError(err).Error("unable to get abs path")
+		} else {
+			path = abs
+		}
+
+		logentry.WithField("path", path).Debug("recursive path monitor")
+		if err := w.AddRecursive(path); err != nil {
+			logentry.WithError(err).WithField("path", path).Error("unable to add directory for recursive watch")
 		}
 	}
 
@@ -109,7 +143,7 @@ func New(ctx context.Context, c *cli.Context) {
 		path = filepath.Clean(path)
 		path = filepath.ToSlash(path)
 
-		logrus.WithField("path", path).Debug("watched file")
+		logentry.WithField("path", path).Debug("watched file")
 
 		if f.IsDir() {
 			continue
@@ -120,7 +154,7 @@ func New(ctx context.Context, c *cli.Context) {
 
 	// Start the watching process - it'll check for changes every 100ms.
 	if err := w.Start(time.Second * 5); err != nil {
-		log.Fatalln(err)
+		logentry.Fatalln(err)
 	}
 }
 

@@ -1,7 +1,11 @@
 package commands
 
-import "context"
+import (
+	"context"
 
-func runService(ctx context.Context) (context.Context, error) {
+	"github.com/sirupsen/logrus"
+)
+
+func runService(ctx context.Context, log *logrus.Logger) (context.Context, error) {
 	return ctx, nil
 }
