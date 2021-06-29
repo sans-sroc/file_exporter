@@ -8,6 +8,12 @@ This project is a little more simplistic and is configurable entirely from the c
 
 It exposes file modified time and the CRC32 hash of the file because it can be represented in float64 which then can be used as a value to a gauge metric in prometheus directly.
 
+## Features
+
+- CRC32 of all paths being monitored
+- Operations performed on paths such as CREATE, REMOVE, and WRITE
+- File modified timed (directories are omitted)
+
 ## Usage
 
 ```bash
