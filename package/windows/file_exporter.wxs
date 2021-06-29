@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:fw="http://schemas.microsoft.com/wix/FirewallExtension"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <?if $(sys.BUILDARCH)=x64 ?>
+    <?define PlatformProgramFiles = "ProgramFiles64Folder" ?>
+  <?else ?>
+    <?define PlatformProgramFiles = "ProgramFilesFolder" ?>
+  <?endif ?>
+
+  <Product Id="*" UpgradeCode="3f3d80ae-8dca-4d03-8c4f-4ed8002ae31a"
+           Name="file_exporter" Version="$(var.Version)" Manufacturer="sans-sroc"
+           Language="1033" Codepage="1252">
+    <Package Id="*" Manufacturer="sans-sroc" InstallScope="perMachine" InstallerVersion="500"
+             Description="file_exporter $(var.Version) installer" Compressed="yes" />
+    <Media Id="1" Cabinet="file_exporter.cab" EmbedCab="yes"/>
+    <MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit." />
+
+    <Property Id="PATHS" Secure="yes"/>
+    <SetProperty Id="PathsFlag" After="InstallFiles" Sequence="execute" Value="--paths [PATHS]">PATHS</SetProperty>
+
+    <Property Id="RECURSIVE_PATHS" Secure="yes"/>
+    <SetProperty Id="RecursivePathsFlag" After="InstallFiles" Sequence="execute" Value="--recursive-paths [RECURSIVE_PATHS]">RECURSIVE_PATHS</SetProperty>
+
+    <Property Id="EXTRA_FLAGS" Secure="yes"/>
+    <SetProperty Id="ExtraFlags" After="InstallFiles" Sequence="execute" Value="[EXTRA_FLAGS]">EXTRA_FLAGS</SetProperty>
+
+    <Property Id="LISTEN_ADDR" Secure="yes" />
+    <Property Id="LISTEN_PORT" Secure="yes" Value="9183" />
+    <SetProperty Id="ListenFlag" After="InstallFiles" Sequence="execute" Value="--telemetry.addr [LISTEN_ADDR]:[LISTEN_PORT]">LISTEN_ADDR OR LISTEN_PORT</SetProperty>
+
+    <Property Id="METRICS_PATH" Secure="yes"/>
+    <SetProperty Id="MetricsPathFlag" After="InstallFiles" Sequence="execute" Value="--telemetry.path [METRICS_PATH]">METRICS_PATH</SetProperty>
+     
+    <Property Id="REMOTE_ADDR" Secure="yes" />
+    <SetProperty Id="RemoteAddressFlag" After="InstallFiles" Sequence="execute" Value="[REMOTE_ADDR]">REMOTE_ADDR</SetProperty> 
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFiles)">
+        <Directory Id="APPLICATIONROOTDIRECTORY" Name="file_exporter" />
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="Files">
+      <Component Directory="APPLICATIONROOTDIRECTORY">
+        <File Id="file_exporter.exe" Name="file_exporter.exe" Source="Work\file_exporter.exe" KeyPath="yes">
+          <fw:FirewallException Id="MetricsEndpoint" Name="file_exporter (HTTP [LISTEN_PORT])" Description="file_exporter HTTP endpoint" Port="[LISTEN_PORT]" Protocol="tcp" IgnoreFailure="yes">
+            <fw:RemoteAddress>[REMOTE_ADDR]</fw:RemoteAddress>
+          </fw:FirewallException> 
+        </File>
+        <ServiceInstall Id="InstallExporterService" Name="file_exporter" DisplayName="file_exporter" Description="Exports Prometheus metrics about the system" ErrorControl="normal" Start="auto" Type="ownProcess" Arguments="--log-level=info [PathsFlag] [RecursivePathsFlag] [ListenFlag] [MetricsPathFlag] [ExtraFlags]">
+          <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="60" />
+          <ServiceDependency Id="wmiApSrv" />
+        </ServiceInstall>
+        <ServiceControl Id="ServiceStateControl" Name="file_exporter" Remove="uninstall" Start="install" Stop="both" />
+        <util:EventSource Log="Application" Name="file_exporter" EventMessageFile="%SystemRoot%\System32\EventCreate.exe" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="DefaultFeature" Level="1">
+      <ComponentGroupRef Id="Files" />
+    </Feature>
+  </Product>
+</Wix>
