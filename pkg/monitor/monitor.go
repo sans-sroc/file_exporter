@@ -110,6 +110,7 @@ func New(ctx context.Context, c *cli.Context) {
 		path = filepath.ToSlash(path)
 
 		logrus.WithField("path", path).Debug("watched file")
+
 		if f.IsDir() {
 			continue
 		}

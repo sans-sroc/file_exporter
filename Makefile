@@ -16,7 +16,7 @@ build: vendor
 
 release: vendor
 	mkdir -p release
-	go build -mod=vendor -ldflags $(LDFLAGS) -o release/$(NAME)-$(OS) .
+	go build -mod=vendor -ldflags $(LDFLAGS) -o release/$(NAME) .
 
 release-all: vendor
 	mkdir -p release
