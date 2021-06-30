@@ -55,13 +55,18 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 					continue
 				}
 
-				fileEvent.WithLabelValues(event.Path, event.Op.String()).Inc()
+				metricPath := event.Path
+				if c.String("rootfs") != "" {
+					metricPath = strings.ReplaceAll(metricPath, c.String("rootfs"), "")
+				}
+
+				fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 
 				if event.Op == watcher.Remove {
-					fileContentHashCRC32.DeleteLabelValues(event.Path)
-					fileStatModified.DeleteLabelValues(event.Path)
+					fileContentHashCRC32.DeleteLabelValues(metricPath)
+					fileStatModified.DeleteLabelValues(metricPath)
 				} else {
-					fileEvent.WithLabelValues(event.Path, event.Op.String()).Inc()
+					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 					generateMetrics(event.Path, c.String("rootfs"))
 				}
 
