@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Freman/eventloghook"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/svc"
+
+	el "github.com/sans-sroc/file_exporter/pkg/eventlog"
 	"golang.org/x/sys/windows/svc/eventlog"
 )
 
@@ -39,18 +40,17 @@ loop:
 }
 
 func runService(ctx context.Context, log *logrus.Logger) (context.Context, error) {
-	elog, err := eventlog.Open(serviceName)
-	if err != nil {
-		return ctx, err
-	}
-	defer elog.Close()
-
-	log.Hooks.Add(eventloghook.NewHook(elog))
-
 	isInteractive, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		return ctx, err
 	}
+
+	elog, err := eventlog.Open(serviceName)
+	if err != nil {
+		return ctx, err
+	}
+
+	log.Hooks.Add(el.NewHook(elog))
 
 	serviceCtx, cancel := context.WithCancel(ctx)
 
@@ -62,6 +62,11 @@ func runService(ctx context.Context, log *logrus.Logger) (context.Context, error
 			}
 		}()
 	}
+
+	go func() {
+		<-ctx.Done()
+		elog.Close()
+	}()
 
 	return serviceCtx, nil
 }
