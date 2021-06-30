@@ -35,9 +35,9 @@ var (
 )
 
 func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
-	w := watcher.New()
-
 	logentry := log.WithField("component", "monitor")
+
+	w := watcher.New()
 
 	// Only notify rename and move events.
 	// w.FilterOps(watcher.Rename, watcher.Move)
@@ -62,7 +62,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 					fileStatModified.DeleteLabelValues(event.Path)
 				} else {
 					fileEvent.WithLabelValues(event.Path, event.Op.String()).Inc()
-					generateMetrics(event.Path)
+					generateMetrics(event.Path, c.String("rootfs"))
 				}
 
 			case err := <-w.Error:
@@ -77,7 +77,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 	if len(c.String("paths")) > 0 {
 		for _, f := range strings.Split(c.String("paths"), ",") {
-			path := f
+			path := filepath.Join(c.String("rootfs"), f)
 			abs, err := filepath.Abs(path)
 			if err != nil {
 				logentry.WithError(err).Error("unable to get abs path")
@@ -93,7 +93,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 	}
 
 	for _, f := range c.StringSlice("path") {
-		path := f
+		path := filepath.Join(c.String("rootfs"), f)
 		abs, err := filepath.Abs(path)
 		if err != nil {
 			logentry.WithError(err).Error("unable to get abs path")
@@ -109,7 +109,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 	if len(c.String("recursive-paths")) > 0 {
 		for _, f := range strings.Split(c.String("recursive-paths"), ",") {
-			path := f
+			path := filepath.Join(c.String("rootfs"), f)
 			abs, err := filepath.Abs(path)
 			if err != nil {
 				logentry.WithError(err).Error("unable to get abs path")
@@ -125,7 +125,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 	}
 
 	for _, d := range c.StringSlice("recursive-path") {
-		path := d
+		path := filepath.Join(c.String("rootfs"), d)
 		abs, err := filepath.Abs(path)
 		if err != nil {
 			logentry.WithError(err).Error("unable to get abs path")
@@ -139,6 +139,8 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 		}
 	}
 
+	rootfs := c.String("rootfs")
+
 	for path, f := range w.WatchedFiles() {
 		path = filepath.Clean(path)
 		path = filepath.ToSlash(path)
@@ -149,7 +151,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 			continue
 		}
 
-		generateMetrics(path)
+		generateMetrics(path, rootfs)
 	}
 
 	// Start the watching process - it'll check for changes every 100ms.
@@ -158,8 +160,13 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 	}
 }
 
-func generateMetrics(path string) {
-	fileStatModified.WithLabelValues(path).SetToCurrentTime()
+func generateMetrics(path string, rootfs string) {
+	metricPath := path
+	if rootfs != "" {
+		metricPath = strings.ReplaceAll(metricPath, rootfs, "")
+	}
+
+	fileStatModified.WithLabelValues(metricPath).SetToCurrentTime()
 
 	crc32, err := generateCRC32(path)
 	if err != nil {
@@ -167,7 +174,7 @@ func generateMetrics(path string) {
 		return
 	}
 
-	fileContentHashCRC32.WithLabelValues(path).Set(float64(*crc32))
+	fileContentHashCRC32.WithLabelValues(metricPath).Set(float64(*crc32))
 }
 
 func generateCRC32(path string) (*uint32, error) {

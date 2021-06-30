@@ -128,6 +128,11 @@ func init() {
 			EnvVars: []string{"RECURSIVE_PATHS"},
 			Hidden:  true,
 		},
+		&cli.StringFlag{
+			Name:    "rootfs",
+			Usage:   "Location of the root fs",
+			EnvVars: []string{"ROOTFS"},
+		},
 	}
 
 	cliCmd := &cli.Command{
