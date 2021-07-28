@@ -32,6 +32,19 @@ var (
 		Name: "file_event",
 		Help: "Events that occur against a file",
 	}, []string{"path", "op"})
+
+	filePendingPaths = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "file_pending_paths",
+		Help: "Paths that are pending monitoring, usually because they were initially not found",
+	})
+
+	filePendingRecursivePaths = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "file_pending_recursive_paths",
+		Help: "Paths that are pending monitoring, usually because they were initially not found",
+	})
+
+	pendingPaths          = []string{}
+	pendingRecursivePaths = []string{}
 )
 
 func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
@@ -80,6 +93,47 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 		}
 	}()
 
+	go func() {
+		filePendingPaths.Set(float64(len(pendingPaths)))
+		filePendingRecursivePaths.Set(float64(len(pendingRecursivePaths)))
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(30 * time.Second):
+				added := false
+				for i, path := range pendingPaths {
+					if err := w.Add(path); err != nil {
+						logentry.WithField("path", path).WithError(err).Error("unable to add path for watching (pending-path, retry)")
+						continue
+					}
+					logentry.WithField("path", path).Debug("successfully adding pending path")
+					pendingPaths = append(pendingPaths[:i], pendingPaths[i+1:]...)
+					added = true
+				}
+
+				for i, path := range pendingRecursivePaths {
+					if err := w.AddRecursive(path); err != nil {
+						logentry.WithField("path", path).WithError(err).Error("unable to add file for watching (pending-recursive-path, retry)")
+						continue
+					}
+					logentry.WithField("path", path).Info("successfully adding pending path")
+					pendingRecursivePaths = append(pendingRecursivePaths[:i], pendingRecursivePaths[i+1:]...)
+					added = true
+				}
+
+				if added {
+					rootfs := c.String("rootfs")
+					runWatchedFiles(w, logentry, rootfs)
+				}
+
+				filePendingPaths.Set(float64(len(pendingPaths)))
+				filePendingRecursivePaths.Set(float64(len(pendingRecursivePaths)))
+			}
+		}
+	}()
+
 	if len(c.String("paths")) > 0 {
 		for _, f := range strings.Split(c.String("paths"), ",") {
 			path := filepath.Join(c.String("rootfs"), f)
@@ -92,6 +146,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 			logentry.WithField("path", path).Debug("monitored path from paths")
 			if err := w.Add(f); err != nil {
+				pendingPaths = append(pendingPaths, path)
 				logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 			}
 		}
@@ -108,6 +163,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 		logentry.WithField("path", path).Debug("monitored path flag")
 		if err := w.Add(path); err != nil {
+			pendingPaths = append(pendingPaths, path)
 			logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 		}
 	}
@@ -124,6 +180,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 			logentry.WithField("path", path).Debug("monitored path recursively")
 			if err := w.AddRecursive(path); err != nil {
+				pendingRecursivePaths = append(pendingRecursivePaths, path)
 				logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 			}
 		}
@@ -140,12 +197,21 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 		logentry.WithField("path", path).Debug("recursive path monitor")
 		if err := w.AddRecursive(path); err != nil {
+			pendingRecursivePaths = append(pendingRecursivePaths, path)
 			logentry.WithError(err).WithField("path", path).Error("unable to add directory for recursive watch")
 		}
 	}
 
 	rootfs := c.String("rootfs")
+	runWatchedFiles(w, logentry, rootfs)
 
+	// Start the watching process - it'll check for changes every 5 seconds.
+	if err := w.Start(time.Second * 5); err != nil {
+		logentry.Fatalln(err)
+	}
+}
+
+func runWatchedFiles(w *watcher.Watcher, logentry *logrus.Entry, rootfs string) {
 	for path, f := range w.WatchedFiles() {
 		path = filepath.Clean(path)
 		path = filepath.ToSlash(path)
@@ -157,11 +223,6 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 		}
 
 		generateMetrics(path, rootfs)
-	}
-
-	// Start the watching process - it'll check for changes every 100ms.
-	if err := w.Start(time.Second * 5); err != nil {
-		logentry.Fatalln(err)
 	}
 }
 

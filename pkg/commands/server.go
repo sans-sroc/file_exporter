@@ -33,8 +33,10 @@ func (s *apiServerCommand) Execute(c *cli.Context) error {
 		return errors.New("You must pass a path or path-recursive to the tool for monitoring")
 	}
 
+	globalLevel := logrus.GetLevel()
+
 	log := logrus.New()
-	log.SetLevel(logrus.GetLevel())
+	log.SetLevel(globalLevel)
 
 	serviceCtx, err := runService(ctx, log)
 	if err != nil {

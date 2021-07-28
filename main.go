@@ -40,6 +40,7 @@ func main() {
 
 	app.Action = app.Commands[0].Action
 	app.Flags = app.Commands[0].Flags
+	app.Before = app.Commands[0].Before
 
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
