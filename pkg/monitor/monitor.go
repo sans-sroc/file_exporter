@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -47,7 +48,7 @@ var (
 	pendingRecursivePaths = []string{}
 )
 
-func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
+func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 	logentry := log.WithField("component", "monitor")
 
 	w := watcher.New()
@@ -59,6 +60,15 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 	// will be watched.
 	// r := regexp.MustCompile("^abc$")
 	// w.AddFilterHook(watcher.RegexFilterHook(r, false))
+
+	if c.String("regex") != "" {
+		r, err := regexp.Compile(c.String("regex"))
+		if err != nil {
+			return err
+		}
+
+		w.AddFilterHook(watcher.RegexFilterHook(r, c.Bool("regex-fullpath")))
+	}
 
 	go func() {
 		for {
@@ -207,8 +217,11 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) {
 
 	// Start the watching process - it'll check for changes every 5 seconds.
 	if err := w.Start(time.Second * 5); err != nil {
-		logentry.Fatalln(err)
+		logentry.Error(err)
+		return err
 	}
+
+	return nil
 }
 
 func runWatchedFiles(w *watcher.Watcher, logentry *logrus.Entry, rootfs string) {

@@ -135,6 +135,16 @@ func init() {
 			Usage:   "Location of the root fs",
 			EnvVars: []string{"ROOTFS"},
 		},
+		&cli.StringFlag{
+			Name:    "regex",
+			Usage:   "Only files that match the regular expression during file listings",
+			EnvVars: []string{"REGEX"},
+		},
+		&cli.BoolFlag{
+			Name:    "regex-fullpath",
+			Usage:   "Whether or not the regex applies against the filename or the full path",
+			EnvVars: []string{"REGEX_FULLPATH"},
+		},
 	}
 
 	cliCmd := &cli.Command{
