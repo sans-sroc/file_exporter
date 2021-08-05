@@ -1,5 +1,5 @@
 # Stage 1 - Go, Build the Binary
-FROM golang:1.16.5 as go-builder
+FROM golang:1.16.7 as go-builder
 WORKDIR /src/file_exporter
 ENV GO111MODULE=on
 COPY . /src/file_exporter
