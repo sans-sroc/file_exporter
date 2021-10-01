@@ -10,5 +10,5 @@ require (
 	github.com/rancher/wrangler v0.8.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
+	golang.org/x/sys v0.0.0-20211001092434-39dca1131b70
 )
