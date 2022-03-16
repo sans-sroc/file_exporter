@@ -17,13 +17,13 @@
     <MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit." />
 
     <Property Id="PATHS" Secure="yes"/>
-    <SetProperty Id="PathsFlag" After="InstallFiles" Sequence="execute" Value="--paths [PATHS]">PATHS</SetProperty>
+    <SetProperty Id="PathsFlag" After="InstallFiles" Sequence="execute" Value='--paths "[PATHS]"'>PATHS</SetProperty>
 
     <Property Id="RECURSIVE_PATHS" Secure="yes"/>
-    <SetProperty Id="RecursivePathsFlag" After="InstallFiles" Sequence="execute" Value="--recursive-paths [RECURSIVE_PATHS]">RECURSIVE_PATHS</SetProperty>
+    <SetProperty Id="RecursivePathsFlag" After="InstallFiles" Sequence="execute" Value='--recursive-paths "[RECURSIVE_PATHS]"'>RECURSIVE_PATHS</SetProperty>
 
     <Property Id="EXTRA_FLAGS" Secure="yes"/>
-    <SetProperty Id="ExtraFlags" After="InstallFiles" Sequence="execute" Value="[EXTRA_FLAGS]">EXTRA_FLAGS</SetProperty>
+    <SetProperty Id="ExtraFlags" After="InstallFiles" Sequence="execute" Value='"[EXTRA_FLAGS]"'>EXTRA_FLAGS</SetProperty>
 
     <Property Id="LISTEN_ADDR" Secure="yes" />
     <Property Id="LISTEN_PORT" Secure="yes" Value="9183" />
