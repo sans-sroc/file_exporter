@@ -31,7 +31,7 @@ jobs:
       - name: "build"
         run: |
           make release-all
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: release
           path: release/*
@@ -54,7 +54,7 @@ jobs:
         shell: powershell
       - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.build.outputs.windows-version }}-amd64.msi .\release\
         shell: powershell
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: release
           path: release/*
