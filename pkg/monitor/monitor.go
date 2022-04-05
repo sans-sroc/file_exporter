@@ -2,11 +2,13 @@ package monitor
 
 import (
 	"context"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +24,11 @@ var (
 	fileStatModified = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "file_stat_modified_time_seconds",
 		Help: "The unix time the file was last modified",
+	}, []string{"path"})
+
+	filePermissions = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "file_permissions",
+		Help: "The permissions of a file",
 	}, []string{"path"})
 
 	fileContentHashCRC32 = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -254,6 +261,21 @@ func generateMetrics(path string, rootfs string) {
 	}
 
 	fileContentHashCRC32.WithLabelValues(metricPath).Set(float64(*crc32))
+
+	stats, err := os.Stat(path)
+	if err != nil {
+		logrus.WithError(err).Error("unable to get file stats")
+		return
+	}
+
+	perms := fmt.Sprintf("%#o", stats.Mode().Perm())
+	i, err := strconv.Atoi(perms)
+	if err != nil {
+		logrus.WithError(err).Error("unable to convert string to int")
+		return
+	}
+
+	filePermissions.WithLabelValues(metricPath).Set(float64(i))
 }
 
 func generateCRC32(path string) (*uint32, error) {
