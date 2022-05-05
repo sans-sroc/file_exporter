@@ -59,7 +59,7 @@ jobs:
           username: sans-sroc-bot
           password: ${{ secrets.SROCBOT_ACTIONS_GITHUB_TOKEN }}
       - name: Build to Registry
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           tags: ${{ steps.docker_metadata.outputs.tags }}
@@ -72,7 +72,7 @@ jobs:
           cache-to: type=inline
           outputs: type=registry
       - name: Build to Docker
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           tags: ${{ steps.docker_metadata.outputs.tags }}
