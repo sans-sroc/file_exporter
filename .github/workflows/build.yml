@@ -5,7 +5,7 @@ on:
     branches:
       - master
     tags:
-      - '*'
+      - "*"
 
 jobs:
   build:
@@ -23,6 +23,7 @@ jobs:
         env:
           SEP: "."
           NOREV: "true"
+          RCTOBUILD: "true"
         run: echo ::set-output name=version::$(.ci/version)
       - name: Install Go
         uses: actions/setup-go@v3
@@ -37,7 +38,7 @@ jobs:
           path: release/*
     outputs:
       version: ${{ steps.version.outputs.version }}
-      windows-version:  ${{ steps.windows-version.outputs.version }}
+      windows-version: ${{ steps.windows-version.outputs.version }}
 
   build-msi:
     runs-on: windows-latest

@@ -25,7 +25,18 @@ if echo "${exact_tag}" | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$"; then
 fi
 
 if [ "$commits" -eq 0 ]; then
+    rc_regex="\-rc([0-9]+)$"
     if [ -n "${last_tag}" ]; then
+        if [ -n "${RCTOBUILD}" ]; then
+            if echo "$last_tag" | grep -qE "\-rc[0-9]+$"; then
+                if [[ $last_tag =~ $rc_regex ]]
+                then
+                    revision="${BASH_REMATCH[1]}"
+                    echo "${last_tag//v/}" | sed "s/-rc${revision}/${SEP}${revision}/g"
+                    exit 0
+                fi
+            fi
+        fi
         echo "${last_tag//v/}"
         exit 0
     fi
