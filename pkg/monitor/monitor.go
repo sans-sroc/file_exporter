@@ -90,6 +90,9 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					metricPath = strings.ReplaceAll(metricPath, c.String("rootfs"), "")
 				}
 
+				metricPath = filepath.Clean(metricPath)
+				metricPath = filepath.ToSlash(metricPath)
+
 				fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 
 				if event.Op == watcher.Remove {
