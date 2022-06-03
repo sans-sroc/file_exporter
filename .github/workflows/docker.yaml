@@ -40,7 +40,7 @@ jobs:
         uses: tj-actions/branch-names@v5.2
       - name: Setup Docker Metadata
         id: docker_metadata
-        uses: crazy-max/ghaction-docker-meta@v3
+        uses: crazy-max/ghaction-docker-meta@v4
         with:
           images: |
             ghcr.io/sans-sroc/file_exporter
