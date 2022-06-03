@@ -4,6 +4,8 @@ Param (
     [String] $PathToExecutable,
     [Parameter(Mandatory = $true)]
     [String] $Version,
+    [Parameter(Mandatory = $true)]
+    [String] $WindowsVersion,
     [Parameter(Mandatory = $false)]
     [ValidateSet("amd64", "386")]
     [String] $Arch = "amd64"
@@ -53,7 +55,7 @@ Copy-Item -Force $PathToExecutable Work/file_exporter.exe
 Write-Verbose "Creating file_exporter-${Version}-${Arch}.msi"
 $wixArch = @{"amd64" = "x64"; "386" = "x86"}[$Arch]
 $wixOpts = "-ext WixFirewallExtension -ext WixUtilExtension"
-Invoke-Expression "WiX\candle.exe -nologo -arch $wixArch $wixOpts -out Work\file_exporter.wixobj -dVersion=`"$Version`" file_exporter.wxs"
+Invoke-Expression "WiX\candle.exe -nologo -arch $wixArch $wixOpts -out Work\file_exporter.wixobj -dVersion=`"$WindowsVersion`" file_exporter.wxs"
 Invoke-Expression "WiX\light.exe -nologo -spdb $wixOpts -out `"Output\file_exporter-${Version}-${Arch}.msi`" Work\file_exporter.wixobj"
 
 Write-Verbose "Done!"
