@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/gorilla/mux v1.8.0
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rancher/wrangler v0.8.7
 	github.com/sirupsen/logrus v1.8.1
