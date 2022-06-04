@@ -239,11 +239,11 @@ func runWatchedFiles(w *watcher.Watcher, logentry *logrus.Entry, rootfs string) 
 		path = filepath.Clean(path)
 		path = filepath.ToSlash(path)
 
-		logentry.WithField("path", path).Debug("watched file")
-
 		if f.IsDir() {
 			continue
 		}
+
+		logentry.WithField("path", path).Debug("watched file")
 
 		generateMetrics(path, rootfs)
 	}
@@ -288,6 +288,7 @@ func generateCRC32(path string) (*uint32, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
 	// read chunks of 32k
 	buf := make([]byte, 32*1024)
