@@ -104,7 +104,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 				}
 
 			case err := <-w.Error:
-				logentry.Fatalln(err)
+				logentry.Errorln(err)
 			case <-w.Closed:
 				return
 			case <-ctx.Done():
