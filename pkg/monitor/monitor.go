@@ -93,11 +93,14 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 				metricPath = filepath.Clean(metricPath)
 				metricPath = filepath.ToSlash(metricPath)
 
+				logentry.WithField("path", metricPath).WithField("op", event.Op).Debug("event received")
+
 				fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 
 				if event.Op == watcher.Remove {
 					fileContentHashCRC32.DeleteLabelValues(metricPath)
 					fileStatModified.DeleteLabelValues(metricPath)
+					filePermissions.DeleteLabelValues(metricPath)
 				} else {
 					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 					generateMetrics(event.Path, c.String("rootfs"))
@@ -228,7 +231,6 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 	// Start the watching process - it'll check for changes every 5 seconds.
 	if err := w.Start(time.Second * 5); err != nil {
 		logentry.Error(err)
-		return err
 	}
 
 	return nil
