@@ -103,7 +103,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					filePermissions.DeleteLabelValues(metricPath)
 				} else {
 					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
-					generateMetrics(event.Path, c.String("rootfs"))
+					generateMetrics(metricPath, c.String("rootfs"))
 				}
 
 			case err := <-w.Error:
@@ -256,6 +256,9 @@ func generateMetrics(path string, rootfs string) {
 	if rootfs != "" {
 		metricPath = strings.ReplaceAll(metricPath, rootfs, "")
 	}
+
+	metricPath = filepath.Clean(metricPath)
+	metricPath = filepath.ToSlash(metricPath)
 
 	fileStatModified.WithLabelValues(metricPath).SetToCurrentTime()
 
