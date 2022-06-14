@@ -9,5 +9,5 @@ require (
 	github.com/rancher/wrangler v0.8.7
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.8.1
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
+	golang.org/x/sys v0.0.0-20220614162138-6c1b26c55098
 )
