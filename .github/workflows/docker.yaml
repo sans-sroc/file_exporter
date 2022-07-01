@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
       - name: Get branch names
         id: branch-name
-        uses: tj-actions/branch-names@v5.2
+        uses: tj-actions/branch-names@v5.4
       - name: Setup Docker Metadata
         id: docker_metadata
         uses: crazy-max/ghaction-docker-meta@v4
