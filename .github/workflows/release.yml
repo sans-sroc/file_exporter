@@ -103,7 +103,7 @@ jobs:
           path: releases
       - run: .\package\windows\build.ps1 -PathToExecutable .\releases\file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch amd64
         shell: powershell
-      - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.goreleaser.outputs.version }}-amd64.msi .\releases\
+      - run: Move-Item .\package\windows\Output\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_amd64.msi .\releases\
         shell: powershell
       - uses: actions/upload-artifact@v3
         with:
