@@ -1,3 +1,4 @@
+.envrc
 vendor
 release
 cosign.key
@@ -5,3 +6,4 @@ package/windows/Output
 package/windows/Source
 package/windows/WiX
 package/windows/Work
+releases

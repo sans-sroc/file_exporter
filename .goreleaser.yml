@@ -1,0 +1,120 @@
+dist: releases
+
+snapshot:
+  name_template: '{{ trimprefix .Summary "v" }}'
+
+builds:
+  - id: default
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+    ldflags:
+      - -s
+      - -w
+
+signs:
+  - id: cosign
+    cmd: cosign
+    stdin: "{{ .Env.COSIGN_PASSWORD }}"
+    args:
+      ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
+    artifacts: checksum
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^Merge pull request"
+
+release:
+  github:
+    owner: sans-sroc
+    name: file_exporter
+  prerelease: auto
+  discussion_category_name: General
+  extra_files:
+    - glob: ./cosign.pub
+    - glob: "./releases/*.dmg"
+
+dockers:
+  - use: buildx
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    image_templates:
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-amd64
+    build_flag_templates:
+      - "--target=goreleaser"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/sans-sroc/file_exporter"
+      - "--platform=linux/amd64"
+  - use: buildx
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    image_templates:
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm64
+    build_flag_templates:
+      - "--target=goreleaser"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/sans-sroc/file_exporter"
+      - "--platform=linux/arm64"
+  - use: buildx
+    goos: linux
+    goarch: arm
+    goarm: "7"
+    dockerfile: Dockerfile
+    image_templates:
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm32v7
+    build_flag_templates:
+      - "--target=goreleaser"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/sans-sroc/file_exporter"
+      - "--platform=linux/arm/v7"
+
+docker_manifests:
+  - use: docker
+    name_template: ghcr.io/sans-sroc/file_exporter:v{{ .Version }}
+    image_templates:
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-amd64
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm64
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm32v7
+  - use: docker
+    name_template: ghcr.io/sans-sroc/file_exporter:latest
+    image_templates:
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-amd64
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm64
+      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm32v7
+
+docker_signs:
+  - artifacts: all
+    stdin: "{{ .Env.COSIGN_PASSWORD }}"
