@@ -101,7 +101,7 @@ jobs:
         with:
           name: releases
           path: releases
-      - run: .\package\windows\build.ps1 -PathToExecutable .\releases\default_windows_amd64_v1\file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch amd64
+      - run: .\package\windows\build.ps1 -PathToExecutable .\releases\file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch amd64
         shell: powershell
       - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.goreleaser.outputs.version }}-amd64.msi .\releases\
         shell: powershell
