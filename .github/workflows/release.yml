@@ -10,13 +10,12 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v3
         if: github.event_name == 'pull_request'
@@ -76,7 +75,7 @@ jobs:
       - name: Push Docker Images (for branches)
         if: github.ref == 'refs/heads/master' || github.event.pull_request.base.ref == 'master'
         run: |
-          docker images --format "{{.Repository}}:{{.Tag}}" | grep "sans-sroc/file_exporter" | xargs -L1 docker push
+          docker images --format "{{.Repository}}:{{.Tag}}" | grep "${{ github.repository }}" | xargs -L1 docker push
       - uses: actions/upload-artifact@v3
         with:
           name: releases
