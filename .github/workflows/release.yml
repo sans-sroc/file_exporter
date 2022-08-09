@@ -110,6 +110,7 @@ jobs:
           name: releases
           path: releases/*
       - name: Upload binaries to release
+        if: startsWith(github.ref, 'refs/tags/') == true
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
