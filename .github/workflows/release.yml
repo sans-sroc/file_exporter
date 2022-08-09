@@ -85,7 +85,7 @@ jobs:
       - id: version
         run: |
           echo "::set-output name=version::$(cat releases/metadata.json | jq -r '.version')"
-          echo "::set-output name=windows::$(cat releases/metadata.json | jq -r '.version | split("-") | if length == 1 then . else ([.[0],.[1]] | join(".")) end')"
+          echo "::set-output name=windows::$(cat releases/metadata.json | jq -r '.version | split("-") | if length == 1 then .[0] else ([.[0],.[1]] | join(".")) end')"
     outputs:
       version: ${{ steps.version.outputs.version }}
       windows-version: ${{ steps.version.outputs.windows }}
