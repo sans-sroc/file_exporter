@@ -54,6 +54,8 @@ release:
   prerelease: auto
   extra_files:
     - glob: ./cosign.pub
+  footer: |
+    **Note:** The windows `msi` is generated outside of [goreleaser](https://goreleaser.com/) and therefore is not included in the checksums file for validation.
 
 dockers:
   - use: buildx
