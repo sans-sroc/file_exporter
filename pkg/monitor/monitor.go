@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -53,20 +54,13 @@ var (
 
 	pendingPaths          = []string{}
 	pendingRecursivePaths = []string{}
+	fileInfoCache         = map[string]fs.FileInfo{}
 )
 
 func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 	logentry := log.WithField("component", "monitor")
 
 	w := watcher.New()
-
-	// Only notify rename and move events.
-	// w.FilterOps(watcher.Rename, watcher.Move)
-
-	// Only files that match the regular expression during file listings
-	// will be watched.
-	// r := regexp.MustCompile("^abc$")
-	// w.AddFilterHook(watcher.RegexFilterHook(r, false))
 
 	if c.String("regex") != "" {
 		r, err := regexp.Compile(c.String("regex"))
@@ -85,6 +79,8 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					continue
 				}
 
+				fileInfoCache[event.Path] = event.FileInfo
+
 				metricPath := event.Path
 				if c.String("rootfs") != "" {
 					metricPath = strings.ReplaceAll(metricPath, c.String("rootfs"), "")
@@ -101,6 +97,8 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					fileContentHashCRC32.DeleteLabelValues(metricPath)
 					fileStatModified.DeleteLabelValues(metricPath)
 					filePermissions.DeleteLabelValues(metricPath)
+
+					delete(fileInfoCache, event.Path)
 				} else if event.Op == watcher.Rename {
 					oldMetricPath := event.OldPath
 					if c.String("rootfs") != "" {
@@ -116,21 +114,42 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					filePermissions.DeleteLabelValues(oldMetricPath)
 
 					generateMetrics(metricPath, c.String("rootfs"))
+
+					delete(fileInfoCache, event.OldPath)
 				} else {
-					fileEvent.WithLabelValues(metricPath, event.Op.String(), "").Inc()
+					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 					generateMetrics(metricPath, c.String("rootfs"))
 				}
 			case err := <-w.Error:
+				logentry.WithError(err).Error("watch error")
 				if err == watcher.ErrWatchedFileDeleted {
-					if len(c.String("paths")) > 0 {
-						addWatcherPaths(w, logentry, c.String("rootfs"), strings.Split(c.String("paths"), ","))
+					paths := c.StringSlice("path")
+					splitPaths := strings.Split(c.String("paths"), ",")
+					if len(splitPaths) > 0 && len(splitPaths[0]) > 0 {
+						paths = append(paths, splitPaths...)
 					}
 
-					if len(c.StringSlice("path")) > 0 {
-						addWatcherPaths(w, logentry, c.String("rootfs"), c.StringSlice("path"))
+					missingPaths := []string{}
+					for _, path := range paths {
+						log := logentry.WithField("path", path).WithField("component", "missing-file")
+						log.Trace("processing path")
+						if i, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+							if v, ok := fileInfoCache[path]; ok {
+								i = v
+							}
+
+							missingPaths = append(missingPaths, path)
+							go func() {
+								w.Event <- watcher.Event{Op: watcher.Remove, Path: path, FileInfo: i}
+							}()
+
+							log.Trace("triggered remove event")
+						}
 					}
+
+					addWatcherPaths(w, logentry, c.String("rootfs"), missingPaths)
 				}
-				logentry.WithError(err).Error("watch error")
+
 			case <-w.Closed:
 				return
 			case <-ctx.Done():
@@ -219,8 +238,10 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 	rootfs := c.String("rootfs")
 	runWatchedFiles(w, logentry, rootfs)
 
+	logentry.Info("starting watcher")
+
 	// Start the watching process - it'll check for changes every 5 seconds.
-	if err := w.Start(time.Second * 5); err != nil {
+	if err := w.Start(time.Millisecond * 100); err != nil {
 		logentry.Error(err)
 	}
 
@@ -248,15 +269,16 @@ func addWatcherPaths(w *watcher.Watcher, logentry *logrus.Entry, rootfs string, 
 func runWatchedFiles(w *watcher.Watcher, logentry *logrus.Entry, rootfs string) {
 	logrus.Debug("processing all watched files")
 	for path, f := range w.WatchedFiles() {
-		path = filepath.Clean(path)
-		path = filepath.ToSlash(path)
-
 		if f.IsDir() {
 			continue
 		}
 
 		logentry.WithField("path", path).Debug("watched file")
 
+		fileInfoCache[path] = f
+
+		path = filepath.Clean(path)
+		path = filepath.ToSlash(path)
 		generateMetrics(path, rootfs)
 	}
 }
