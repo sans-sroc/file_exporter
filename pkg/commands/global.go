@@ -25,6 +25,8 @@ func globalFlags() []cli.Flag {
 
 func globalBefore(c *cli.Context) error {
 	switch c.String("log-level") {
+	case "trace":
+		logrus.SetLevel(logrus.TraceLevel)
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
 	case "info":
