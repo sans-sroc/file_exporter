@@ -25,6 +25,10 @@ builds:
     ldflags:
       - -s
       - -w
+      - -X '{{ .ModulePath }}/pkg/common.SUMMARY=v{{ .Version }}'
+      - -X '{{ .ModulePath }}/pkg/common.BRANCH={{ .Branch }}'
+      - -X '{{ .ModulePath }}/pkg/common.VERSION={{ .Tag }}'
+      - -X '{{ .ModulePath }}/pkg/common.COMMIT={{ .Commit }}'
 
 signs:
   - id: cosign
