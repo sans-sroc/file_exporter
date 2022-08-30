@@ -30,6 +30,12 @@ builds:
       - -X '{{ .ModulePath }}/pkg/common.VERSION={{ .Tag }}'
       - -X '{{ .ModulePath }}/pkg/common.COMMIT={{ .Commit }}'
 
+archives:
+  - id: default
+    format_overrides:
+      - goos: windows
+        format: zip
+
 signs:
   - id: cosign
     cmd: cosign
