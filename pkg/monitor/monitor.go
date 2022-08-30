@@ -95,19 +95,42 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 
 				logentry.WithField("path", metricPath).WithField("op", event.Op).Debug("event received")
 
-				fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
-
 				if event.Op == watcher.Remove {
+					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
+
 					fileContentHashCRC32.DeleteLabelValues(metricPath)
 					fileStatModified.DeleteLabelValues(metricPath)
 					filePermissions.DeleteLabelValues(metricPath)
+				} else if event.Op == watcher.Rename {
+					oldMetricPath := event.OldPath
+					if c.String("rootfs") != "" {
+						oldMetricPath = strings.ReplaceAll(oldMetricPath, c.String("rootfs"), "")
+					}
+					oldMetricPath = filepath.Clean(oldMetricPath)
+					oldMetricPath = filepath.ToSlash(oldMetricPath)
+
+					fileEvent.WithLabelValues(oldMetricPath, event.Op.String()).Inc()
+
+					fileContentHashCRC32.DeleteLabelValues(oldMetricPath)
+					fileStatModified.DeleteLabelValues(oldMetricPath)
+					filePermissions.DeleteLabelValues(oldMetricPath)
+
+					generateMetrics(metricPath, c.String("rootfs"))
 				} else {
-					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
+					fileEvent.WithLabelValues(metricPath, event.Op.String(), "").Inc()
 					generateMetrics(metricPath, c.String("rootfs"))
 				}
-
 			case err := <-w.Error:
-				logentry.Errorln(err)
+				if err == watcher.ErrWatchedFileDeleted {
+					if len(c.String("paths")) > 0 {
+						addWatcherPaths(w, logentry, c.String("rootfs"), strings.Split(c.String("paths"), ","))
+					}
+
+					if len(c.StringSlice("path")) > 0 {
+						addWatcherPaths(w, logentry, c.String("rootfs"), c.StringSlice("path"))
+					}
+				}
+				logentry.WithError(err).Error("watch error")
 			case <-w.Closed:
 				return
 			case <-ctx.Done():
@@ -154,38 +177,10 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 	}()
 
 	if len(c.String("paths")) > 0 {
-		for _, f := range strings.Split(c.String("paths"), ",") {
-			path := filepath.Join(c.String("rootfs"), f)
-			abs, err := filepath.Abs(path)
-			if err != nil {
-				logentry.WithError(err).Error("unable to get abs path")
-			} else {
-				path = abs
-			}
-
-			logentry.WithField("path", path).Debug("monitored path from paths")
-			if err := w.Add(f); err != nil {
-				pendingPaths = append(pendingPaths, path)
-				logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
-			}
-		}
+		addWatcherPaths(w, logentry, c.String("rootfs"), strings.Split(c.String("paths"), ","))
 	}
 
-	for _, f := range c.StringSlice("path") {
-		path := filepath.Join(c.String("rootfs"), f)
-		abs, err := filepath.Abs(path)
-		if err != nil {
-			logentry.WithError(err).Error("unable to get abs path")
-		} else {
-			path = abs
-		}
-
-		logentry.WithField("path", path).Debug("monitored path flag")
-		if err := w.Add(path); err != nil {
-			pendingPaths = append(pendingPaths, path)
-			logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
-		}
-	}
+	addWatcherPaths(w, logentry, c.String("rootfs"), c.StringSlice("path"))
 
 	if len(c.String("recursive-paths")) > 0 {
 		for _, f := range strings.Split(c.String("recursive-paths"), ",") {
@@ -230,6 +225,24 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 	}
 
 	return nil
+}
+
+func addWatcherPaths(w *watcher.Watcher, logentry *logrus.Entry, rootfs string, paths []string) {
+	for _, f := range paths {
+		path := filepath.Join(rootfs, f)
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			logentry.WithError(err).Error("unable to get abs path")
+		} else {
+			path = abs
+		}
+
+		logentry.WithField("path", path).Debug("monitored path from paths")
+		if err := w.Add(f); err != nil {
+			pendingPaths = append(pendingPaths, path)
+			logentry.WithField("path", path).WithError(err).Error("unable to add file for watching")
+		}
+	}
 }
 
 func runWatchedFiles(w *watcher.Watcher, logentry *logrus.Entry, rootfs string) {
