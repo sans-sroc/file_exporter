@@ -75,19 +75,23 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 		for {
 			select {
 			case event := <-w.Event:
-				if event.IsDir() {
+				if event.FileInfo == nil {
+					logentry.WithField("op", event.Op).WithField("path", event.Path).Error("file info empty, this should not happen")
 					continue
 				}
 
-				fileInfoCache[event.Path] = event.FileInfo
+				if event.IsDir() {
+					continue
+				}
 
 				metricPath := event.Path
 				if c.String("rootfs") != "" {
 					metricPath = strings.ReplaceAll(metricPath, c.String("rootfs"), "")
 				}
 
-				metricPath = filepath.Clean(metricPath)
-				metricPath = filepath.ToSlash(metricPath)
+				metricPath = filepath.ToSlash(filepath.Clean(metricPath))
+
+				fileInfoCache[event.Path] = event.FileInfo
 
 				logentry.WithField("path", metricPath).WithField("op", event.Op).Debug("event received")
 
@@ -98,14 +102,13 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					fileStatModified.DeleteLabelValues(metricPath)
 					filePermissions.DeleteLabelValues(metricPath)
 
-					delete(fileInfoCache, event.Path)
+					delete(fileInfoCache, metricPath)
 				} else if event.Op == watcher.Rename {
 					oldMetricPath := event.OldPath
 					if c.String("rootfs") != "" {
 						oldMetricPath = strings.ReplaceAll(oldMetricPath, c.String("rootfs"), "")
 					}
-					oldMetricPath = filepath.Clean(oldMetricPath)
-					oldMetricPath = filepath.ToSlash(oldMetricPath)
+					oldMetricPath = filepath.ToSlash(filepath.Clean(oldMetricPath))
 
 					fileEvent.WithLabelValues(oldMetricPath, event.Op.String()).Inc()
 
@@ -115,7 +118,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 
 					generateMetrics(metricPath, c.String("rootfs"))
 
-					delete(fileInfoCache, event.OldPath)
+					delete(fileInfoCache, oldMetricPath)
 				} else {
 					fileEvent.WithLabelValues(metricPath, event.Op.String()).Inc()
 					generateMetrics(metricPath, c.String("rootfs"))
@@ -131,11 +134,16 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 
 					missingPaths := []string{}
 					for _, path := range paths {
+						path := filepath.ToSlash(filepath.Clean(path))
+
 						log := logentry.WithField("path", path).WithField("component", "missing-file")
 						log.Trace("processing path")
 						if i, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 							if v, ok := fileInfoCache[path]; ok {
 								i = v
+								log.Trace("file cache: hit")
+							} else {
+								log.Trace("file cache: miss")
 							}
 
 							missingPaths = append(missingPaths, path)
@@ -235,8 +243,7 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 		}
 	}
 
-	rootfs := c.String("rootfs")
-	runWatchedFiles(w, logentry, rootfs)
+	runWatchedFiles(w, logentry, c.String("rootfs"))
 
 	logentry.Info("starting watcher")
 
@@ -275,10 +282,8 @@ func runWatchedFiles(w *watcher.Watcher, logentry *logrus.Entry, rootfs string) 
 
 		logentry.WithField("path", path).Debug("watched file")
 
+		path = filepath.ToSlash(filepath.Clean(path))
 		fileInfoCache[path] = f
-
-		path = filepath.Clean(path)
-		path = filepath.ToSlash(path)
 		generateMetrics(path, rootfs)
 	}
 }
@@ -289,8 +294,7 @@ func generateMetrics(path string, rootfs string) {
 		metricPath = strings.ReplaceAll(metricPath, rootfs, "")
 	}
 
-	metricPath = filepath.Clean(metricPath)
-	metricPath = filepath.ToSlash(metricPath)
+	metricPath = filepath.ToSlash(filepath.Clean(metricPath))
 
 	fileStatModified.WithLabelValues(metricPath).SetToCurrentTime()
 
