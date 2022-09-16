@@ -82,8 +82,7 @@ jobs:
         with:
           name: releases
           path: |
-            releases/default_windows_amd64_v1/file_exporter.exe
-            releases/default_windows_386_v1/file_exporter.exe
+            releases/default_windows_*/file_exporter.exe
       - id: version
         run: |
           echo "::set-output name=version::$(cat releases/metadata.json | jq -r '.version')"
@@ -102,13 +101,21 @@ jobs:
           - amd64
           - "386"
     steps:
+      - name: suffix
+        if: ${{ matrix.arch == "amd64" }}
+        run: |
+          echo "::set-output name=value::_v1"
+      - name: suffix
+        if: ${{ matrix.arch == "386" }}
+        run: |
+          echo "::set-output name=value::"
       - name: Checkout code
         uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: releases
           path: releases
-      - run: .\package\windows\build.ps1 -PathToExecutable .\releases\default_windows_${{ matrix.arch }}_v1/file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch ${{ matrix.arch }}
+      - run: .\package\windows\build.ps1 -PathToExecutable .\releases\default_windows_${{ matrix.arch }}${{ steps.suffix.value }} /file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch ${{ matrix.arch }}
         shell: powershell
       - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.goreleaser.outputs.version }}-${{ matrix.arch }}.msi .\releases\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_${{ matrix.arch }}.msi
         shell: powershell
