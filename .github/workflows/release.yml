@@ -102,11 +102,11 @@ jobs:
           - "386"
     steps:
       - name: suffix
-        if: ${{ matrix.arch == "amd64" }}
+        if: ${{ matrix.arch == 'amd64' }}
         run: |
           echo "::set-output name=value::_v1"
       - name: suffix
-        if: ${{ matrix.arch == "386" }}
+        if: ${{ matrix.arch == '386' }}
         run: |
           echo "::set-output name=value::"
       - name: Checkout code
