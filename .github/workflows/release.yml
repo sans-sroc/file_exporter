@@ -81,7 +81,8 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: releases
-          path: releases/default_windows_amd64_v1/file_exporter.exe
+          path: |
+            releases/default_windows_*/file_exporter.exe
       - id: version
         run: |
           echo "::set-output name=version::$(cat releases/metadata.json | jq -r '.version')"
@@ -94,16 +95,33 @@ jobs:
     runs-on: windows-latest
     needs:
       - goreleaser
+    strategy:
+      matrix:
+        arch:
+          - amd64
+          - "386"
     steps:
+      - name: suffix
+        if: ${{ matrix.arch == 'amd64' }}
+        run: |
+          echo "::set-output name=value::_v1"
+      - name: suffix
+        if: ${{ matrix.arch == '386' }}
+        run: |
+          echo "::set-output name=value::"
       - name: Checkout code
         uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: releases
           path: releases
-      - run: .\package\windows\build.ps1 -PathToExecutable .\releases\file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch amd64
+      - if: matrix.arch == 'amd64'
+        run: .\package\windows\build.ps1 -PathToExecutable .\releases\default_windows_${{ matrix.arch }}_v1\file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch ${{ matrix.arch }}
         shell: powershell
-      - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.goreleaser.outputs.version }}-amd64.msi .\releases\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_amd64.msi
+      - if: matrix.arch == '386'
+        run: .\package\windows\build.ps1 -PathToExecutable .\releases\default_windows_${{ matrix.arch }}\file_exporter.exe -Version ${{ needs.goreleaser.outputs.version }} -WindowsVersion ${{ needs.goreleaser.outputs.windows-version }} -Arch ${{ matrix.arch }}
+        shell: powershell
+      - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.goreleaser.outputs.version }}-${{ matrix.arch }}.msi .\releases\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_${{ matrix.arch }}.msi
         shell: powershell
       - uses: actions/upload-artifact@v3
         with:
@@ -114,7 +132,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: releases\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_amd64.msi
-          asset_name: file_exporter_${{ needs.goreleaser.outputs.version }}_windows_amd64.msi
+          file: releases\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_${{ matrix.arch }}.msi
+          asset_name: file_exporter_${{ needs.goreleaser.outputs.version }}_windows_${{ matrix.arch }}.msi
           tag: ${{ github.ref }}
           overwrite: true
