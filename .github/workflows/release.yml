@@ -85,8 +85,8 @@ jobs:
             releases/default_windows_*/file_exporter.exe
       - id: version
         run: |
-          echo "::set-output name=version::$(cat releases/metadata.json | jq -r '.version')"
-          echo "::set-output name=windows::$(cat releases/metadata.json | jq -r '.version | split("-") | if length == 1 then .[0] else ([.[0],.[1]] | join(".") | sub("rc"; "")) end')"
+          echo "version=$(cat releases/metadata.json | jq -r '.version')" >> $GITHUB_OUTPUT
+          echo "windows=$(cat releases/metadata.json | jq -r '.version | split("-") | if length == 1 then .[0] else ([.[0],.[1]] | join(".") | sub("rc"; "")) end')" >> $GITHUB_OUTPUT
     outputs:
       version: ${{ steps.version.outputs.version }}
       windows-version: ${{ steps.version.outputs.windows }}
@@ -101,14 +101,6 @@ jobs:
           - amd64
           - "386"
     steps:
-      - name: suffix
-        if: ${{ matrix.arch == 'amd64' }}
-        run: |
-          echo "::set-output name=value::_v1"
-      - name: suffix
-        if: ${{ matrix.arch == '386' }}
-        run: |
-          echo "::set-output name=value::"
       - name: Checkout code
         uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
