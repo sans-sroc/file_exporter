@@ -30,7 +30,7 @@ func (s *apiServerCommand) Execute(c *cli.Context) error {
 	p4 := strings.Split(c.String("recursive-paths"), ",")
 
 	if len(p1) == 0 && len(p2) == 0 && len(p3) == 0 && len(p4) == 0 {
-		return errors.New("You must pass a path or path-recursive to the tool for monitoring")
+		return errors.New("either a path or path-recursive to the tool for monitoring")
 	}
 
 	globalLevel := logrus.GetLevel()
@@ -97,7 +97,7 @@ func init() {
 		&cli.StringFlag{
 			Name:    "telemetry.addr",
 			Usage:   "Host and port to listen on",
-			EnvVars: []string{"TELEMTRY_ADDR"},
+			EnvVars: []string{"TELEMETRY_ADDR"},
 			Value:   "0.0.0.0:9183",
 		},
 		&cli.StringFlag{
@@ -108,7 +108,7 @@ func init() {
 		},
 		&cli.StringSliceFlag{
 			Name:    "path",
-			Usage:   "Path to monitor, will not be recursed",
+			Usage:   "Path to monitor, will not be recursive",
 			Aliases: []string{"p"},
 			EnvVars: []string{"SINGLE_PATH"},
 		},
@@ -120,13 +120,13 @@ func init() {
 		},
 		&cli.StringFlag{
 			Name:    "paths",
-			Usage:   "Paths to monitor, comma separated (will not be recursed)",
+			Usage:   "Paths to monitor, comma separated (will not be recursive)",
 			EnvVars: []string{"PATHS"},
 			Hidden:  true,
 		},
 		&cli.StringFlag{
 			Name:    "recursive-paths",
-			Usage:   "Paths to monitor recursively, comma separated (will not be recursed)",
+			Usage:   "Paths to monitor recursively, comma separated (will not be recursive)",
 			EnvVars: []string{"RECURSIVE_PATHS"},
 			Hidden:  true,
 		},
@@ -141,9 +141,10 @@ func init() {
 			EnvVars: []string{"REGEX"},
 		},
 		&cli.BoolFlag{
-			Name:    "regex-fullpath",
+			Name:    "regex-full-path",
+			Aliases: []string{"regex-fullpath"},
 			Usage:   "Whether or not the regex applies against the filename or the full path",
-			EnvVars: []string{"REGEX_FULLPATH"},
+			EnvVars: []string{"REGEX_FULL_PATH", "REGEX_FULLPATH"},
 		},
 	}
 

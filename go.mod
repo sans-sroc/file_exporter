@@ -8,7 +8,7 @@ require (
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rancher/wrangler v0.8.7
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli/v2 v2.25.0
+	github.com/urfave/cli/v2 v2.25.1
 	golang.org/x/sys v0.6.0
 )
 
