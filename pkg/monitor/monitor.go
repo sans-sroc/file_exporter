@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,6 +20,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
+
+var pendingSync sync.Mutex
 
 var (
 	fileStatModified = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -174,6 +177,8 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 			case <-ctx.Done():
 				return
 			case <-time.After(30 * time.Second):
+				pendingSync.Lock()
+
 				logEntry.Debug("processing pending paths")
 				for i, path := range pendingPaths {
 					if err := w.Add(path); err != nil {
@@ -192,6 +197,8 @@ func New(ctx context.Context, c *cli.Context, log *logrus.Logger) error {
 					logEntry.WithField("path", path).Info("successfully adding pending path")
 					pendingRecursivePaths = append(pendingRecursivePaths[:i], pendingRecursivePaths[i+1:]...)
 				}
+
+				pendingSync.Unlock()
 
 				runWatchedFiles(w, logEntry, c.String("rootfs"))
 
@@ -264,7 +271,7 @@ func addWatcherPaths(w *watcher.Watcher, logEntry *logrus.Entry, rootfs string, 
 		}
 
 		logEntry.WithField("path", path).Debug("monitored path from paths")
-		if err := w.Add(f); err != nil {
+		if err := w.Add(path); err != nil {
 			pendingPaths = append(pendingPaths, path)
 			logEntry.WithField("path", path).WithError(err).Error("unable to add file for watching")
 		}
@@ -290,7 +297,6 @@ func generateMetrics(path string, rootfs string) {
 	metricPath := path
 	if rootfs != "" {
 		metricPath = strings.ReplaceAll(metricPath, rootfs, "")
-		path = filepath.Join(rootfs, path)
 	}
 
 	metricPath = filepath.ToSlash(filepath.Clean(metricPath))
