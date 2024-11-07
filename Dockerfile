@@ -2,7 +2,7 @@ FROM appropriate/curl as binaries
 ENV TINI_VERSION v0.18.0
 RUN curl --fail -sLo /tini https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static-amd64 && chmod +x /tini
 
-FROM golang:1.18.3 as builder
+FROM golang:1.23.3 as builder
 WORKDIR /src/file_exporter
 ENV GO111MODULE=on
 COPY . /src/file_exporter
