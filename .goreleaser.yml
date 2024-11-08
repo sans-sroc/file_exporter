@@ -41,13 +41,7 @@ signs:
     artifacts: checksum
 
 changelog:
-  use: github
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^Merge pull request"
+  disable: true
 
 release:
   github:
