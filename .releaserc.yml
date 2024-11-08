@@ -3,7 +3,7 @@ plugins:
   - "@semantic-release/commit-analyzer"
   - "@semantic-release/release-notes-generator"
 branches:
-  - name: main
+  - name: master
   - name: next
     prerelease: true
     channel: next
