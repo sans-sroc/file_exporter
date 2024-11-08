@@ -1,7 +1,7 @@
 dist: releases
 
 snapshot:
-  name_template: '{{ trimprefix .Summary "v" }}'
+  version_template: '{{ trimprefix .Summary "v" }}'
 
 builds:
   - id: default
@@ -14,15 +14,10 @@ builds:
     goarch:
       - amd64
       - arm64
-      - arm
       - "386"
-    goarm:
-      - "7"
     ignore:
       - goos: windows
         goarch: arm64
-      - goos: windows
-        goarch: arm
     ldflags:
       - -s
       - -w
@@ -42,7 +37,7 @@ signs:
     cmd: cosign
     stdin: "{{ .Env.COSIGN_PASSWORD }}"
     args:
-      ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
+      ["sign-blob", "--yes", "--key=cosign.key", "--output=${signature}", "${artifact}"]
     artifacts: checksum
 
 changelog:
@@ -95,22 +90,6 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.source=https://github.com/sans-sroc/file_exporter"
       - "--platform=linux/arm64"
-  - use: buildx
-    goos: linux
-    goarch: arm
-    goarm: "7"
-    dockerfile: Dockerfile
-    image_templates:
-      - ghcr.io/sans-sroc/file_exporter:v{{ .Version }}-arm32v7
-    build_flag_templates:
-      - "--target=goreleaser"
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source=https://github.com/sans-sroc/file_exporter"
-      - "--platform=linux/arm/v7"
 
 docker_manifests:
   - use: docker
