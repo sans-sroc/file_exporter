@@ -1,0 +1,13 @@
+plugins:
+  - "@semantic-release/github"
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+branches:
+  - name: main
+  - name: next
+    prerelease: true
+    channel: next
+  - name: beta
+    prerelease: true
+    channel: beta
+  - name: +([0-9])?(.{+([0-9]),x}).x}
