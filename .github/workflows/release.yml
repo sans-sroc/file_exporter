@@ -83,7 +83,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
           docker images --format "{{.Repository}}:{{.Tag}}" | grep "${{ github.repository }}" | xargs -L1 docker push
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
         with:
           name: releases
           path: |
@@ -108,7 +108,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: releases
           path: releases
@@ -120,7 +120,7 @@ jobs:
         shell: powershell
       - run: Move-Item .\package\windows\Output\file_exporter-${{ needs.goreleaser.outputs.version }}-${{ matrix.arch }}.msi .\releases\file_exporter_${{ needs.goreleaser.outputs.version }}_windows_${{ matrix.arch }}.msi
         shell: powershell
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
         with:
           name: releases-windows-${{ matrix.arch }}
           path: releases/*
