@@ -2,7 +2,7 @@ name: semantic
 on:
   push:
     branches:
-      - main
+      - master
       - next
 
 permissions:
