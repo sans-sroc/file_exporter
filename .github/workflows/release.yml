@@ -4,11 +4,16 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
   push:
     branches:
-      - master
+      - main
+      - next
     tags:
-      - "v*"
+      - "*"
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
