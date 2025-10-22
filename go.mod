@@ -1,6 +1,6 @@
 module github.com/sans-sroc/file_exporter
 
-go 1.18
+go 1.24.0
 
 require (
 	github.com/gorilla/mux v1.8.1
@@ -9,7 +9,7 @@ require (
 	github.com/rancher/wrangler v0.8.7
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.7
-	golang.org/x/sys v0.6.0
+	golang.org/x/sys v0.37.0
 )
 
 require (
