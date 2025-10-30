@@ -6,7 +6,7 @@ ARG branch=master
 ENV BRANCH=${branch}
 RUN make release && cp release/file_exporter /go/bin/file_exporter
 
-FROM cgr.dev/chainguard/wolfi-base:latest@sha256:52f88fede0eba350de7be98a4a803be5072e5ddcd8b5c7226d3ebbcd126fb388 as base
+FROM cgr.dev/chainguard/wolfi-base:latest@sha256:ae238a181d95804645919b2671d50ae77477efbfb299544491346e2911125aaf as base
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/bin/file_exporter"]
 RUN apk update && apk add tini
 RUN adduser -D -u 999 file_exporter
