@@ -1,4 +1,4 @@
-FROM golang:1.23.3@sha256:e5ca1999e21764b1fd40cf6564ebfb7022e7a55b8c72886a9bcb697a5feac8d6 AS builder
+FROM golang:1.27.1@sha256:512690a5660563b57d37ecc31129e7f136e831db2aed24a1dbeb8ad7380dc0fa AS builder
 WORKDIR /src/file_exporter
 ENV GO111MODULE=on
 COPY . /src/file_exporter
